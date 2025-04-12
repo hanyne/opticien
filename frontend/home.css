@@ -1,0 +1,192 @@
+/* Reset et styles globaux */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Roboto', sans-serif;
+    color: #333;
+    line-height: 1.6;
+  }
+  
+  .home-container {
+    overflow-x: hidden;
+  }
+  
+  /* Hero Section */
+  .hero-section {
+    background: url('./assets/hero-glasses.jpg') no-repeat center center/cover;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #fff;
+    position: relative;
+  }
+  
+  .hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+  }
+  
+  .hero-content {
+    position: relative;
+    z-index: 1;
+  }
+  
+  .hero-content h1 {
+    font-size: 3.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+  
+  .hero-content p {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .cta-button {
+    display: inline-block;
+    padding: 1rem 2rem;
+    background: #1a73e8;
+    color: #fff;
+    text-decoration: none;
+    font-size: 1.1rem;
+    border-radius: 50px;
+    transition: background 0.3s ease;
+  }
+  
+  .cta-button:hover {
+    background: #1557b0;
+  }
+  
+  /* Features Section */
+  .features-section {
+    padding: 5rem 2rem;
+    background: #f9f9f9;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .feature-card {
+    text-align: center;
+    padding: 2rem;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+  }
+  
+  .feature-card:hover {
+    transform: translateY(-5px);
+  }
+  
+  .feature-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .feature-card p {
+    font-size: 1rem;
+    color: #666;
+  }
+  
+  /* About Section */
+  .about-section {
+    padding: 5rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  
+  .about-content h2 {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .about-content p {
+    font-size: 1.1rem;
+    max-width: 700px;
+    margin: 0 auto 2rem;
+    color: #666;
+  }
+  
+  .secondary-button {
+    display: inline-block;
+    padding: 1rem 2rem;
+    background: transparent;
+    border: 2px solid #1a73e8;
+    color: #1a73e8;
+    text-decoration: none;
+    font-size: 1.1rem;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+  }
+  
+  .secondary-button:hover {
+    background: #1a73e8;
+    color: #fff;
+  }
+  
+  /* CTA Section */
+  .cta-section {
+    padding: 5rem 2rem;
+    background: #1a73e8;
+    color: #fff;
+    text-align: center;
+  }
+  
+  .cta-section h2 {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .cta-section p {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+  }
+  
+  .cta-section .cta-button {
+    background: #fff;
+    color: #1a73e8;
+  }
+  
+  .cta-section .cta-button:hover {
+    background: #f0f0f0;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .hero-content h1 {
+      font-size: 2.5rem;
+    }
+  
+    .hero-content p {
+      font-size: 1rem;
+    }
+  
+    .features-section {
+      grid-template-columns: 1fr;
+    }
+  
+    .about-content h2,
+    .cta-section h2 {
+      font-size: 2rem;
+    }
+  }
