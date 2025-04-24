@@ -1,4 +1,3 @@
-// server/routes/category.js
 const express = require('express');
 const router = express.Router();
 const Category = require('../models/Category');
@@ -9,7 +8,6 @@ const admin = require('../middleware/admin');
 // Ajouter une catégorie (Admin uniquement)
 router.post('/', [auth, admin], async (req, res) => {
   const { name, description } = req.body;
-
   try {
     const category = new Category({ name, description });
     await category.save();
@@ -34,13 +32,11 @@ router.get('/', async (req, res) => {
 // Modifier une catégorie (Admin uniquement)
 router.put('/:id', [auth, admin], async (req, res) => {
   const { name, description } = req.body;
-
   try {
     const category = await Category.findById(req.params.id);
     if (!category) {
       return res.status(404).json({ msg: 'Catégorie non trouvée' });
     }
-
     category.name = name || category.name;
     category.description = description || category.description;
     await category.save();
@@ -54,24 +50,17 @@ router.put('/:id', [auth, admin], async (req, res) => {
 // Supprimer une catégorie (Admin uniquement)
 router.delete('/:id', [auth, admin], async (req, res) => {
   try {
-    console.log(`Tentative de suppression de la catégorie avec ID: ${req.params.id}`);
     const category = await Category.findById(req.params.id);
     if (!category) {
-      console.log('Catégorie non trouvée');
       return res.status(404).json({ msg: 'Catégorie non trouvée' });
     }
-
-    // Vérifier si des produits sont associés à cette catégorie
     const products = await Product.find({ category: req.params.id });
     if (products.length > 0) {
-      console.log('Produits associés trouvés:', products.length);
       return res.status(400).json({
         msg: 'Impossible de supprimer cette catégorie car des produits y sont associés',
       });
     }
-
     await category.deleteOne();
-    console.log('Catégorie supprimée avec succès');
     res.json({ msg: 'Catégorie supprimée avec succès' });
   } catch (error) {
     console.error('Erreur lors de la suppression de la catégorie:', error);

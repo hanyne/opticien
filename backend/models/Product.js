@@ -1,4 +1,3 @@
-// server/models/Product.js
 const mongoose = require('mongoose');
 
 const productSchema = new mongoose.Schema({
@@ -7,7 +6,10 @@ const productSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   stock: { type: Number, required: true },
   category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+  brand: { type: String },
   image: { type: String },
+  reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }],
+  majorityRating: { type: Number, default: 0 }
 });
 
 module.exports = mongoose.model('Product', productSchema);

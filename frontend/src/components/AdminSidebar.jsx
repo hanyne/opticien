@@ -28,10 +28,10 @@ const Sidebar = () => {
         <span style={styles.sidebarIcon}>📋</span> Gestion des catégories
       </a>
       <a href="/admin/orders" style={styles.sidebarLink} className="sidebar-link">
-        <span style={styles.sidebarIcon}>📦</span> Commandes
+        <span style={styles.sidebarIcon}>📦</span> Commandes clients
       </a>
-      <a href="/admin/users" style={styles.sidebarLink} className="sidebar-link">
-        <span style={styles.sidebarIcon}>👥</span> Utilisateurs
+      <a href="/admin/optician-orders" style={styles.sidebarLink} className="sidebar-link">
+        <span style={styles.sidebarIcon}>👥</span> Commandes opticiens
       </a>
       <button onClick={handleLogout} style={styles.sidebarLink} className="sidebar-link">
         <span style={styles.sidebarIcon}>🚪</span> Déconnexion

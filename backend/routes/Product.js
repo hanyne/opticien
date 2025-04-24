@@ -1,4 +1,3 @@
-// server/routes/product.js
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -51,11 +50,11 @@ const handleMulterError = (err, req, res, next) => {
 
 // Ajouter un produit (Admin uniquement)
 router.post('/', [auth, admin, upload, handleMulterError], async (req, res) => {
-  const { name, description, price, stock, category } = req.body;
+  const { name, description, price, stock, category, brand } = req.body;
   const image = req.file ? `/uploads/${req.file.filename}` : '';
 
   try {
-    console.log('Données reçues pour ajout produit:', { name, description, price, stock, category, image });
+    console.log('Données reçues pour ajout produit:', { name, description, price, stock, category, brand, image });
 
     const categoryExists = await Category.findById(category);
     if (!categoryExists) {
@@ -68,12 +67,17 @@ router.post('/', [auth, admin, upload, handleMulterError], async (req, res) => {
       price,
       stock,
       category,
+      brand,
       image,
+      reviews: [], // Initialize reviews array
     });
     await product.save();
 
     // Recharger le produit avec la catégorie peuplée
-    const newProduct = await Product.findById(product._id).populate('category');
+    const newProduct = await Product.findById(product._id).populate('category').populate({
+      path: 'reviews',
+      populate: { path: 'user', select: 'name' },
+    });
     res.json({ msg: 'Produit ajouté avec succès', product: newProduct });
   } catch (error) {
     console.error('Erreur lors de l\'ajout du produit:', error);
@@ -81,10 +85,30 @@ router.post('/', [auth, admin, upload, handleMulterError], async (req, res) => {
   }
 });
 
-// Récupérer tous les produits (avec leur catégorie)
+// Récupérer tous les produits (avec leur catégorie et avis)
 router.get('/', async (req, res) => {
   try {
-    const products = await Product.find().populate('category');
+    const { category, brand, minPrice, maxPrice } = req.query;
+    let query = {};
+
+    if (category) {
+      query.category = category;
+    }
+    if (brand) {
+      query.brand = { $regex: brand, $options: 'i' };
+    }
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) query.price.$gte = Number(minPrice);
+      if (maxPrice) query.price.$lte = Number(maxPrice);
+    }
+
+    const products = await Product.find(query)
+      .populate('category')
+      .populate({
+        path: 'reviews',
+        populate: { path: 'user', select: 'name' },
+      });
     res.json(products);
   } catch (error) {
     console.error('Erreur lors de la récupération des produits:', error);
@@ -92,13 +116,30 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Récupérer un produit par ID
+router.get('/:id', async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id)
+      .populate('category')
+      .populate({
+        path: 'reviews',
+        populate: { path: 'user', select: 'name' },
+      });
+    if (!product) return res.status(404).json({ msg: 'Produit non trouvé' });
+    res.json(product);
+  } catch (error) {
+    console.error('Erreur lors de la récupération du produit:', error);
+    res.status(500).json({ msg: 'Erreur serveur', error: error.message });
+  }
+});
+
 // Modifier un produit (Admin uniquement)
 router.put('/:id', [auth, admin, upload, handleMulterError], async (req, res) => {
-  const { name, description, price, stock, category } = req.body;
+  const { name, description, price, stock, category, brand } = req.body;
   const newImage = req.file ? `/uploads/${req.file.filename}` : null;
 
   try {
-    console.log('Données reçues pour modification produit:', { name, description, price, stock, category, newImage });
+    console.log('Données reçues pour modification produit:', { name, description, price, stock, category, brand, newImage });
 
     const product = await Product.findById(req.params.id);
     if (!product) {
@@ -123,11 +164,17 @@ router.put('/:id', [auth, admin, upload, handleMulterError], async (req, res) =>
     product.price = price || product.price;
     product.stock = stock || product.stock;
     product.category = category || product.category;
+    product.brand = brand || product.brand;
     product.image = newImage || product.image;
     await product.save();
 
-    // Recharger le produit avec la catégorie peuplée
-    const updatedProduct = await Product.findById(product._id).populate('category');
+    // Recharger le produit avec la catégorie et les avis peuplés
+    const updatedProduct = await Product.findById(product._id)
+      .populate('category')
+      .populate({
+        path: 'reviews',
+        populate: { path: 'user', select: 'name' },
+      });
     res.json({ msg: 'Produit mis à jour avec succès', product: updatedProduct });
   } catch (error) {
     console.error('Erreur lors de la mise à jour du produit:', error);
@@ -144,6 +191,10 @@ router.delete('/:id', [auth, admin], async (req, res) => {
       console.log('Produit non trouvé');
       return res.status(404).json({ msg: 'Produit non trouvé' });
     }
+
+    // Supprimer les avis associés
+    await Review.deleteMany({ product: product._id });
+    console.log('Avis associés supprimés');
 
     // Supprimer l'image associée si elle existe
     if (product.image) {

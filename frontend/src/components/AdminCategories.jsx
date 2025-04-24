@@ -11,7 +11,6 @@ const AdminCategories = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Récupérer toutes les catégories
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -24,7 +23,6 @@ const AdminCategories = () => {
     fetchCategories();
   }, []);
 
-  // Ajouter ou modifier une catégorie
   const handleSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
@@ -39,7 +37,7 @@ const AdminCategories = () => {
         const res = await axios.put(
           `http://localhost:5000/api/categories/${editId}`,
           { name, description },
-          { headers: { 'x-auth-token': token } }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
         setCategories(
           categories.map((cat) =>
@@ -51,7 +49,7 @@ const AdminCategories = () => {
         const res = await axios.post(
           'http://localhost:5000/api/categories',
           { name, description },
-          { headers: { 'x-auth-token': token } }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
         setCategories([...categories, res.data.category]);
         setSuccess('Catégorie ajoutée avec succès');
@@ -60,7 +58,6 @@ const AdminCategories = () => {
       setDescription('');
       setEditId(null);
       setError('');
-      // Rafraîchir la liste des catégories après ajout/modification
       const res = await axios.get('http://localhost:5000/api/categories');
       setCategories(res.data);
     } catch (err) {
@@ -72,7 +69,6 @@ const AdminCategories = () => {
     }
   };
 
-  // Supprimer une catégorie
   const handleDelete = async (id) => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -81,30 +77,26 @@ const AdminCategories = () => {
     }
 
     try {
-      console.log(`Suppression de la catégorie avec ID: ${id}`);
       await axios.delete(`http://localhost:5000/api/categories/${id}`, {
-        headers: { 'x-auth-token': token },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setCategories(categories.filter((cat) => cat._id !== id));
       setSuccess('Catégorie supprimée avec succès');
       setError('');
-      // Rafraîchir la liste des catégories après suppression
       const res = await axios.get('http://localhost:5000/api/categories');
       setCategories(res.data);
     } catch (err) {
-      console.error('Erreur lors de la suppression de la catégorie:', err.response || err);
+      console.error('Erreur lors de la suppression:', err.response || err);
       setError(err.response?.data?.msg || 'Erreur lors de la suppression');
       setSuccess('');
     }
   };
 
-  // Charger les données pour modification
   const handleEdit = (category) => {
     setEditId(category._id);
     setName(category.name);
     setDescription(category.description);
   };
-
   return (
     <div style={styles.pageContainer}>
       <style jsx>{`

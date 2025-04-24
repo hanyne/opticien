@@ -13,7 +13,11 @@ import ProductDetails from './components/ProductDetails';
 import AdminDashboard from './components/Dashboard';
 import AdminCategories from './components/AdminCategories';
 import AdminProducts from './components/AdminProducts';
-
+import Checkout from './components/Checkout';
+import AdminOrders from './components/AdminOrders';
+import OrderHistory from './components/OrderHistory';
+import OpticienDashboard from './components/OpticienDashboard';
+import AdminOpticianOrders from './components/AdminOpticianOrders';
   
 function App() {
   const token = localStorage.getItem('token');
@@ -28,8 +32,13 @@ function App() {
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/cart" element={<Cart />} />
-        <Route path="/detailsp" element={<ProductDetails />} />
+        <Route path="/product/:id" element={<ProductDetails />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/orders" element={<OrderHistory />} />
+        <Route path="/opticien/dashboard" element={<OpticienDashboard />} />
+        
+        <Route path="/admin/optician-orders" element={<AdminOpticianOrders />} />
         <Route
           path="/home"
           element={
@@ -54,6 +63,13 @@ function App() {
             token && role === 'admin' ? <AdminCategories /> : <Navigate to="/signin" replace />
           }
         />
+        <Route
+          path="/admin/orders"
+          element={
+            token && role === 'admin' ? <AdminOrders /> : <Navigate to="/signin" replace />
+          }
+        />
+       
 
 
       </Routes>

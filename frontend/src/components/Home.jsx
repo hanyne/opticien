@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import Navbar from './Navbar'; // Importer la navbar
+import axios from 'axios';
+import Navbar from './Navbar';
 import heroImage1 from '../assets/images/m1.jpg';
 import heroImage2 from '../assets/images/m2.jpg';
 import heroImage3 from '../assets/images/m3.jpg';
-import productImage1 from '../assets/images/glass1.png';
-import productImage2 from '../assets/images/glass1.png';
-import productImage3 from '../assets/images/glass1.png';
+import { useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 const Home = () => {
   const carouselImages = [heroImage1, heroImage2, heroImage3];
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [products, setProducts] = useState([]);
+  const [error, setError] = useState('');
+  const location = useLocation();
+  const successMessage = location.state?.successMessage || '';
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -18,19 +22,37 @@ const Home = () => {
     return () => clearInterval(interval);
   }, [carouselImages.length]);
 
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await axios.get('http://localhost:5000/api/products');
+        const topProducts = response.data
+          .sort((a, b) => b.stock - a.stock)
+          .slice(0, 3);
+        setProducts(topProducts);
+      } catch (err) {
+        setError('Erreur lors de la récupération des produits');
+        console.error(err);
+      }
+    };
+    fetchProducts();
+  }, []);
+
   return (
-    <div style={styles.homeContainer}>
+    <div className="home-container" style={styles.homeContainer}>
       <style jsx>{`
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
+        .home-container {
+          overflow-x: hidden;
+          background: #fff;
         }
 
-        body {
-          font-family: 'Poppins', sans-serif;
-          color: #333;
-          line-height: 1.6;
+        .carousel-dot {
+          width: 14px;
+          height: 14px;
+          background: rgba(255, 255, 255, 0.7);
+          border-radius: 50%;
+          cursor: pointer;
+          transition: background 0.3s ease;
         }
 
         .carousel-dot:hover,
@@ -41,6 +63,15 @@ const Home = () => {
         .feature-card:hover {
           transform: translateY(-10px);
           box-shadow: 0 10px 20px rgba(74, 144, 226, 0.3);
+        }
+
+        .product-card {
+          text-align: center;
+          padding: 1.5rem;
+          background: #fff;
+          border-radius: 15px;
+          box-shadow: 0 5px 15px rgba(74, 144, 226, 0.1);
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
         .product-card:hover {
@@ -62,13 +93,19 @@ const Home = () => {
           transform: scale(1.2);
         }
 
+        .majority-rating {
+          font-size: 1rem;
+          color: #f5e050;
+          margin-bottom: 0.5rem;
+        }
+
         @media (max-width: 768px) {
           .hero-title {
             font-size: 2.2rem;
           }
 
           .hero-text {
-            fontSize: 1rem;
+            font-size: 1rem;
           }
 
           .features-section,
@@ -97,10 +134,35 @@ const Home = () => {
         }
       `}</style>
 
-      {/* Utiliser la Navbar centralisée */}
+      {successMessage && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="success-message"
+        >
+          {successMessage}
+        </motion.div>
+      )}
+      <h1>Bienvenue chez Barbie Vision</h1>
+      <style jsx>{`
+        .success-message {
+          font-size: 1.5rem;
+          font-weight: 500;
+          color: #10b981;
+          text-align: center;
+          padding: 2rem;
+          background: rgba(255, 255, 255, 0.9);
+          border-radius: 16px;
+          border: 1px solid rgba(74, 144, 226, 0.1);
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+          backdrop-filter: blur(12px);
+          margin-bottom: 2rem;
+        }
+      `}</style>
+
       <Navbar />
 
-      {/* Hero Section with Carousel */}
       <section style={styles.heroSection}>
         <div
           style={{
@@ -135,7 +197,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Services Section */}
       <section style={styles.servicesSection}>
         <h2 style={styles.servicesTitle}>Nos services exclusifs</h2>
         <div style={styles.featuresSection}>
@@ -160,38 +221,38 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Products Section */}
       <section style={styles.productsSection}>
         <h2 style={styles.productsTitle}>Nos produits phares</h2>
+        {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
         <div style={styles.productsGrid}>
-          <div style={styles.productCard} className="product-card">
-            <img src={productImage1} alt="Lunettes de soleil" style={styles.productImage} />
-            <h3 style={styles.productTitle}>Lunettes de soleil élégantes</h3>
-            <p style={styles.productPrice}>89,99 €</p>
-            <a href="/shop" style={styles.productButton}>
-              Voir le produit
-            </a>
-          </div>
-          <div style={styles.productCard} className="product-card">
-            <img src={productImage2} alt="Lunettes de vue" style={styles.productImage} />
-            <h3 style={styles.productTitle}>Lunettes de vue modernes</h3>
-            <p style={styles.productPrice}>129,99 €</p>
-            <a href="/shop" style={styles.productButton}>
-              Voir le produit
-            </a>
-          </div>
-          <div style={styles.productCard} className="product-card">
-            <img src={productImage3} alt="Lentilles" style={styles.productImage} />
-            <h3 style={styles.productTitle}>Lentilles de contact</h3>
-            <p style={styles.productPrice}>29,99 €</p>
-            <a href="/shop" style={styles.productButton}>
-              Voir le produit
-            </a>
-          </div>
+          {products.length > 0 ? (
+            products.map((product) => (
+              <div key={product._id} style={styles.productCard} className="product-card">
+                <img
+                  src={`http://localhost:5000${product.image}`}
+                  alt={product.name}
+                  style={styles.productImage}
+                  onError={(e) => (e.target.src = '/path/to/fallback-image.jpg')}
+                />
+                <h3 style={styles.productTitle}>{product.name}</h3>
+                <p style={styles.productPrice}>{product.price} TND</p>
+                <p className="majority-rating">
+                  {'★'.repeat(product.majorityRating)}{'☆'.repeat(5 - product.majorityRating)}
+                </p>
+                <p style={styles.productAvailability}>
+                  {product.stock > 0 ? `En stock` : 'Rupture de stock'}
+                </p>
+                <a href={`/product/${product._id}`} style={styles.productButton}>
+                  Voir le produit
+                </a>
+              </div>
+            ))
+          ) : (
+            <p style={{ textAlign: 'center' }}>Aucun produit disponible</p>
+          )}
         </div>
       </section>
 
-      {/* About Section */}
       <section style={styles.aboutSection}>
         <div style={styles.aboutContent}>
           <h2 style={styles.aboutTitle}>Barbie Vision : L'élégance au service de votre vision</h2>
@@ -208,7 +269,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Testimonials Section */}
       <section style={styles.testimonialsSection}>
         <h2 style={styles.testimonialsTitle}>Ce que nos clients disent</h2>
         <div style={styles.testimonialsGrid}>
@@ -234,7 +294,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Promotions Section */}
       <section style={styles.promotionsSection}>
         <h2 style={styles.promotionsTitle}>Offres spéciales</h2>
         <div style={styles.promotionsContent}>
@@ -259,7 +318,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
       <section style={styles.ctaSection}>
         <h2 style={styles.ctaTitle}>Prête à transformer votre vision ?</h2>
         <p style={styles.ctaText}>
@@ -275,7 +333,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Footer */}
       <footer style={styles.footer}>
         <div style={styles.footerContent}>
           <div style={styles.footerSection}>
@@ -338,7 +395,6 @@ const styles = {
     overflowX: 'hidden',
     background: '#fff',
   },
-  // Hero Section
   heroSection: {
     height: '100vh',
     position: 'relative',
@@ -416,7 +472,6 @@ const styles = {
   carouselDotActive: {
     background: '#4a90e2',
   },
-  // Services Section
   servicesSection: {
     padding: '6rem 2rem',
     background: '#f5f5f5',
@@ -454,7 +509,6 @@ const styles = {
     fontSize: '1rem',
     color: '#666',
   },
-  // Products Section
   productsSection: {
     padding: '6rem 2rem',
     background: '#fff',
@@ -495,9 +549,14 @@ const styles = {
   },
   productPrice: {
     fontSize: '1.2rem',
-    marginBottom: '1rem',
+    marginBottom: '0.5rem',
     color: '#f5e050',
     fontWeight: 600,
+  },
+  productAvailability: {
+    fontSize: '1rem',
+    marginBottom: '1rem',
+    color: '#666',
   },
   productButton: {
     display: 'inline-block',
@@ -509,7 +568,6 @@ const styles = {
     borderRadius: '50px',
     transition: 'background 0.3s ease',
   },
-  // About Section
   aboutSection: {
     padding: '6rem 2rem',
     maxWidth: '1400px',
@@ -543,7 +601,6 @@ const styles = {
     borderRadius: '50px',
     transition: 'all 0.3s ease',
   },
-  // Testimonials Section
   testimonialsSection: {
     padding: '6rem 2rem',
     background: '#fff',
@@ -580,7 +637,6 @@ const styles = {
     color: '#4a90e2',
     fontWeight: 600,
   },
-  // Promotions Section
   promotionsSection: {
     padding: '6rem 2rem',
     background: '#f5f5f5',
@@ -629,7 +685,6 @@ const styles = {
     borderRadius: '50px',
     transition: 'background 0.3s ease',
   },
-  // CTA Section
   ctaSection: {
     padding: '6rem 2rem',
     background: '#4a90e2',
@@ -662,7 +717,6 @@ const styles = {
     boxShadow: '0 5px 15px rgba(245, 224, 80, 0.3)',
     transition: 'transform 0.3s ease',
   },
-  // Footer
   footer: {
     padding: '4rem 2rem',
     background: '#f5f5f5',
