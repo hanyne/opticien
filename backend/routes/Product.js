@@ -48,8 +48,8 @@ const handleMulterError = (err, req, res, next) => {
   next();
 };
 
-// Ajouter un produit (Admin uniquement)
-router.post('/', [auth, admin, upload, handleMulterError], async (req, res) => {
+// Ajouter un produit (SANS authentification)
+router.post('/', [upload, handleMulterError], async (req, res) => {
   const { name, description, price, stock, category, brand } = req.body;
   const image = req.file ? `/uploads/${req.file.filename}` : '';
 
