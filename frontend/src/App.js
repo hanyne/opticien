@@ -18,6 +18,7 @@ import AdminOrders from './components/AdminOrders';
 import OrderHistory from './components/OrderHistory';
 import OpticienDashboard from './components/OpticienDashboard';
 import AdminOpticianOrders from './components/AdminOpticianOrders';
+import CreateUser from './components/CreateUser';
   
 function App() {
   const token = localStorage.getItem('token');
@@ -61,6 +62,12 @@ function App() {
           path="/admin/categories"
           element={
             token && role === 'admin' ? <AdminCategories /> : <Navigate to="/signin" replace />
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            token && role === 'admin' ? <CreateUser /> : <Navigate to="/signin" replace />
           }
         />
         <Route

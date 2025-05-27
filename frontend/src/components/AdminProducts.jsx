@@ -1,4 +1,3 @@
-// client/src/pages/AdminProducts.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Sidebar from '../components/AdminSidebar';
@@ -12,11 +11,12 @@ const AdminProducts = () => {
   const [stock, setStock] = useState('');
   const [category, setCategory] = useState('');
   const [image, setImage] = useState(null);
+  const [model3D, setModel3D] = useState(null); // New state for 3D model
   const [editId, setEditId] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Récupérer les produits et les catégories
+  // Fetch products and categories
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -36,7 +36,7 @@ const AdminProducts = () => {
     fetchData();
   }, []);
 
-  // Ajouter ou modifier un produit
+  // Handle form submission for adding or updating a product
   const handleSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
@@ -54,6 +54,9 @@ const AdminProducts = () => {
     formData.append('category', category);
     if (image) {
       formData.append('image', image);
+    }
+    if (model3D) {
+      formData.append('model3D', model3D); // Append 3D model file
     }
 
     try {
@@ -93,10 +96,12 @@ const AdminProducts = () => {
       setPrice('');
       setStock('');
       setImage(null);
+      setModel3D(null); // Reset 3D model
       setEditId(null);
       setError('');
       document.getElementById('image-input').value = '';
-      // Rafraîchir la liste des produits après ajout/modification
+      document.getElementById('model3d-input').value = ''; // Reset 3D model input
+      // Refresh product list
       const productsRes = await axios.get('http://localhost:5000/api/products');
       setProducts(productsRes.data);
     } catch (err) {
@@ -108,7 +113,7 @@ const AdminProducts = () => {
     }
   };
 
-  // Supprimer un produit
+  // Delete a product
   const handleDelete = async (id) => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -124,7 +129,7 @@ const AdminProducts = () => {
       setProducts(products.filter((prod) => prod._id !== id));
       setSuccess('Produit supprimé avec succès');
       setError('');
-      // Rafraîchir la liste des produits après suppression
+      // Refresh product list
       const productsRes = await axios.get('http://localhost:5000/api/products');
       setProducts(productsRes.data);
     } catch (err) {
@@ -134,7 +139,7 @@ const AdminProducts = () => {
     }
   };
 
-  // Charger les données pour modification
+  // Load product data for editing
   const handleEdit = (product) => {
     setEditId(product._id);
     setName(product.name);
@@ -143,7 +148,9 @@ const AdminProducts = () => {
     setStock(product.stock);
     setCategory(product.category?._id || '');
     setImage(null);
+    setModel3D(null); // Reset 3D model for editing
     document.getElementById('image-input').value = '';
+    document.getElementById('model3d-input').value = '';
   };
 
   return (
@@ -305,27 +312,6 @@ const AdminProducts = () => {
           object-fit: cover;
           border-radius: 5px;
         }
-
-        @media (max-width: 768px) {
-          .main-content {
-            margin-left: 200px;
-            padding: 1rem;
-          }
-
-          .form-card {
-            padding: 1rem;
-          }
-
-          .table-container {
-            padding: 1rem;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .main-content {
-            margin-left: 0;
-          }
-        }
       `}</style>
 
       <Sidebar />
@@ -333,7 +319,7 @@ const AdminProducts = () => {
       <div style={styles.mainContent} className="main-content">
         <h2 style={styles.sectionTitle}>Gestion des produits</h2>
 
-        {/* Formulaire d'ajout/modification */}
+        {/* Form for adding/editing product */}
         <div style={styles.formCard} className="form-card">
           {error && <p className="error-message">{error}</p>}
           {success && <p className="success-message">{success}</p>}
@@ -387,13 +373,20 @@ const AdminProducts = () => {
               onChange={(e) => setImage(e.target.files[0])}
               className="form-input"
             />
+            <input
+              id="model3d-input"
+              type="file"
+              accept=".glb,.gltf"
+              onChange={(e) => setModel3D(e.target.files[0])}
+              className="form-input"
+            />
             <button type="submit" className="form-button">
               {editId ? 'Modifier' : 'Ajouter'}
             </button>
           </form>
         </div>
 
-        {/* Liste des produits */}
+        {/* Product list */}
         <h3 style={styles.subtitle}>Liste des produits</h3>
         <div style={styles.tableContainer} className="table-container">
           <table className="table">
@@ -405,6 +398,7 @@ const AdminProducts = () => {
                 <th className="th">Stock</th>
                 <th className="th">Catégorie</th>
                 <th className="th">Image</th>
+                <th className="th">Modèle 3D</th>
                 <th className="th">Actions</th>
               </tr>
             </thead>
@@ -427,6 +421,19 @@ const AdminProducts = () => {
                       />
                     ) : (
                       'Aucune image'
+                    )}
+                  </td>
+                  <td className="td">
+                    {product.model3D ? (
+                      <a
+                        href={`http://localhost:5000${product.model3D}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Voir le modèle 3D
+                      </a>
+                    ) : (
+                      'Aucun modèle 3D'
                     )}
                   </td>
                   <td className="td">

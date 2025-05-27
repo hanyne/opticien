@@ -8,6 +8,7 @@ const productSchema = new mongoose.Schema({
   category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
   brand: { type: String },
   image: { type: String },
+  model3D: { type: String }, // New field for 3D model file (e.g., .glb)
   reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }],
   majorityRating: { type: Number, default: 0 }
 });

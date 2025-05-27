@@ -1,0 +1,15 @@
+.virtual-try-on {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.virtual-try-on h2 {
+  font-size: 1.5em;
+  margin-bottom: 10px;
+}
+
+.virtual-try-on button, .virtual-try-on input {
+  margin: 10px;
+  padding: 8px 16px;
+  cursor: pointer;
+}

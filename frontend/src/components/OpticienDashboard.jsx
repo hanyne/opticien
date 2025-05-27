@@ -11,9 +11,31 @@ const OpticienDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [activeSection, setActiveSection] = useState('order');
+  const [totalPrice, setTotalPrice] = useState(null); // State to store total price after submission
   const navigate = useNavigate();
 
-  // Fetch user data and orders on mount
+  // Pricing data for lenses and frames
+  const lensPrices = {
+    'Galaxy® CR Dark G15 D70 B6': 50,
+    'Galaxy® CR Brun D70 B6': 50,
+    'Galaxy® CR Dark Gray D70 B6': 50,
+    'Galaxy® CR Dark G15 D80 B6': 60,
+    'Galaxy® CR Brun D80 B6': 60,
+    'Galaxy® Gris (0.00) 0.00 D70': 40,
+    'Galaxy® Gris "New" (0.00) 0.00 D70': 45,
+    'Galaxy® 56 Blue Max (0.00) 0.00 D70': 55,
+    'Galaxy® Brun Blue Max (0.00) 0.00 D70': 55,
+    'Galaxy® Gris Blue Max (0.00) 0.00 D70': 55,
+    'Galaxy® 56 Asph Blue Max (0.00) 0.00 D72': 60,
+  };
+
+  const framePrices = {
+    'montage cadre': 30,
+    'demi cadre': 25,
+    'percé': 20,
+    'spécial': 35,
+  };
+
   useEffect(() => {
     const fetchUserAndOrders = async () => {
       try {
@@ -54,7 +76,6 @@ const OpticienDashboard = () => {
 
   const toggleDarkMode = () => setDarkMode((prev) => !prev);
 
-  // State for Order Form
   const [orderForm, setOrderForm] = useState({
     frameType: '',
     additionalNotes: '',
@@ -68,25 +89,20 @@ const OpticienDashboard = () => {
   const [orderError, setOrderError] = useState('');
   const [orderSuccess, setOrderSuccess] = useState('');
 
-  // Lens type options (extracted from the image)
-  const lensOptions = [
-    'Galaxy® CR Dark G15 D70 B6',
-    'Galaxy® CR Brun D70 B6',
-    'Galaxy® CR Dark Gray D70 B6',
-    'Galaxy® CR Dark G15 D80 B6',
-    'Galaxy® CR Brun D80 B6',
-    'Galaxy® Gris (0.00) 0.00 D70',
-    'Galaxy® Gris "New" (0.00) 0.00 D70',
-    'Galaxy® 56 Blue Max (0.00) 0.00 D70',
-    'Galaxy® Brun Blue Max (0.00) 0.00 D70',
-    'Galaxy® Gris Blue Max (0.00) 0.00 D70',
-    'Galaxy® 56 Asph Blue Max (0.00) 0.00 D72',
-  ];
+  const lensOptions = Object.keys(lensPrices);
+
+  const calculateTotalPrice = () => {
+    const lensPrice = lensPrices[orderForm.lensType] || 0;
+    const framePrice = framePrices[orderForm.frameType] || 0;
+    return lensPrice + framePrice;
+  };
 
   const handleOrderSubmit = async (e) => {
     e.preventDefault();
     setOrderError('');
     setOrderSuccess('');
+    setTotalPrice(null);
+
     if (!orderForm.frameType) {
       setOrderError('Veuillez sélectionner un type de montage');
       return;
@@ -95,9 +111,14 @@ const OpticienDashboard = () => {
       setOrderError('Veuillez remplir toutes les informations du porteur');
       return;
     }
+    if (!orderForm.lensType) {
+      setOrderError('Veuillez sélectionner un type de verre');
+      return;
+    }
 
     try {
       const token = localStorage.getItem('token');
+      const totalPrice = calculateTotalPrice();
       const res = await axios.post(
         'http://localhost:5000/api/orderopt',
         {
@@ -107,13 +128,15 @@ const OpticienDashboard = () => {
           wearer: orderForm.wearer,
           lensType: orderForm.lensType,
           status: 'pending',
+          totalPrice: totalPrice, // Add total price to the order
         },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
       setOrderSuccess('Commande soumise avec succès');
-      setOrders((prev) => [...prev, res.data.order]);
+      setTotalPrice(totalPrice); // Display total price after submission
+      setOrders((prev) => [...prev, { ...res.data.order, totalPrice }]);
       setOrderForm({
         frameType: '',
         additionalNotes: '',
@@ -441,7 +464,8 @@ const OpticienDashboard = () => {
         }
 
         .error-text,
-        .success-text {
+        .success-text,
+        .total-price {
           font-size: 0.9rem;
           margin-top: 1rem;
           text-align: center;
@@ -453,6 +477,11 @@ const OpticienDashboard = () => {
 
         .success-text {
           color: #48bb78;
+        }
+
+        .total-price {
+          color: ${darkMode ? '#63b3ed' : '#3182ce'};
+          font-weight: 600;
         }
 
         @media (max-width: 768px) {
@@ -553,7 +582,7 @@ const OpticienDashboard = () => {
             <h2 className="section-title">Formulaire de commande de montage</h2>
             <form onSubmit={handleOrderSubmit}>
               <div className="form-group">
-                <label htmlFor="frameType">Type de montage</label>
+                <label htmlFor="frameType">Type de montage (Prix: Montage cadre: 30 TND, Demi cadre: 25 TND, Percé: 20 TND, Spécial: 35 TND)</label>
                 <select
                   id="frameType"
                   value={orderForm.frameType}
@@ -562,10 +591,10 @@ const OpticienDashboard = () => {
                   }
                 >
                   <option value="">Sélectionner un type</option>
-                  <option value="montage cadre">Montage cadre</option>
-                  <option value="demi cadre">Demi cadre</option>
-                  <option value="percé">Percé</option>
-                  <option value="spécial">Spécial</option>
+                  <option value="montage cadre">Montage cadre (30 TND)</option>
+                  <option value="demi cadre">Demi cadre (25 TND)</option>
+                  <option value="percé">Percé (20 TND)</option>
+                  <option value="spécial">Spécial (35 TND)</option>
                 </select>
               </div>
 
@@ -688,7 +717,7 @@ const OpticienDashboard = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="lensType">Type de verre</label>
+                <label htmlFor="lensType">Type de verre (Prix: Dark G15/Brun/Dark Gray D70: 50 TND, D80: 60 TND, Gris 0.00: 40 TND, Gris New: 45 TND, Blue Max: 55 TND, Asph Blue Max: 60 TND)</label>
                 <select
                   id="lensType"
                   value={orderForm.lensType}
@@ -698,7 +727,9 @@ const OpticienDashboard = () => {
                 >
                   <option value="">Sélectionner un type de verre</option>
                   {lensOptions.map((option, index) => (
-                    <option key={index} value={option}>{option}</option>
+                    <option key={index} value={option}>
+                      {option} ({lensPrices[option]} TND)
+                    </option>
                   ))}
                 </select>
               </div>
@@ -720,6 +751,9 @@ const OpticienDashboard = () => {
               </button>
               {orderError && <p className="error-text">{orderError}</p>}
               {orderSuccess && <p className="success-text">{orderSuccess}</p>}
+              {totalPrice !== null && (
+                <p className="total-price">Prix total de la commande: {totalPrice} TND</p>
+              )}
             </form>
           </motion.div>
         )}
@@ -768,6 +802,7 @@ const OpticienDashboard = () => {
                       Date: {new Date(order.createdAt).toLocaleDateString('fr-FR')}
                     </p>
                     <p className="order-status">Statut: {order.status}</p>
+                    <p className="order-detail">Prix total: {order.totalPrice || 'N/A'} TND</p>
                   </motion.div>
                 ))}
               </div>

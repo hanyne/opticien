@@ -33,6 +33,9 @@ const Sidebar = () => {
       <a href="/admin/optician-orders" style={styles.sidebarLink} className="sidebar-link">
         <span style={styles.sidebarIcon}>👥</span> Commandes opticiens
       </a>
+      <a href="/admin/users" style={styles.sidebarLink} className="sidebar-link"> {/* New link added */}
+        <span style={styles.sidebarIcon}>👤</span> Gestion des utilisateurs
+      </a>
       <button onClick={handleLogout} style={styles.sidebarLink} className="sidebar-link">
         <span style={styles.sidebarIcon}>🚪</span> Déconnexion
       </button>

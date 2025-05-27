@@ -4,6 +4,25 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+// Middleware to check if user is admin
+const isAdmin = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ msg: 'Aucun token fourni' });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ msg: 'Accès refusé. Admin requis.' });
+    }
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error('Auth verification error:', error);
+    res.status(401).json({ msg: 'Token invalide' });
+  }
+};
+
 // Route pour la connexion
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -28,7 +47,6 @@ router.post('/login', async (req, res) => {
     };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    // Log login attempt
     user.loginHistory.push({ timestamp: new Date(), ip: req.ip });
     await user.save();
     console.log(`Login successful: ${email}, Role: ${user.role}, Token: ${token}`);
@@ -59,8 +77,33 @@ router.get('/me', async (req, res) => {
   }
 });
 
-// Route pour créer un utilisateur
+// Route pour l'auto-inscription (non admin)
 router.post('/register', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    let user = await User.findOne({ email });
+    if (user) {
+      return res.status(400).json({ msg: 'Utilisateur déjà existant' });
+    }
+
+    user = new User({
+      email,
+      password,
+      role: 'client', // Default to client for self-registration
+    });
+
+    await user.save();
+    console.log(`User registered: ${email}, Role: client`);
+    res.json({ msg: 'Utilisateur créé avec succès' });
+  } catch (error) {
+    console.error('Register error:', error);
+    res.status(500).json({ msg: 'Erreur serveur' });
+  }
+});
+
+// Route pour ajouter un utilisateur par l'admin
+router.post('/admin/register', isAdmin, async (req, res) => {
   const { email, password, role } = req.body;
 
   try {
@@ -69,8 +112,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ msg: 'Utilisateur déjà existant' });
     }
 
-    // Validate role
-    const validRoles = ['client', 'admin', 'opticien'];
+    const validRoles = ['client', 'opticien'];
     const userRole = validRoles.includes(role) ? role : 'client';
 
     user = new User({
@@ -80,10 +122,10 @@ router.post('/register', async (req, res) => {
     });
 
     await user.save();
-    console.log(`User registered: ${email}, Role: ${userRole}`);
-    res.json({ msg: 'Utilisateur créé avec succès' });
+    console.log(`Admin registered user: ${email}, Role: ${userRole}`);
+    res.json({ msg: 'Utilisateur créé avec succès par l\'admin' });
   } catch (error) {
-    console.error('Register error:', error);
+    console.error('Admin register error:', error);
     res.status(500).json({ msg: 'Erreur serveur' });
   }
 });

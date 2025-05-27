@@ -4,6 +4,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
 import { motion } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
+import VirtualTryOn from './VirtualTryOn';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -16,6 +17,7 @@ const ProductDetail = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [newReview, setNewReview] = useState({ rating: 0, comment: '' });
+  const [showTryOn, setShowTryOn] = useState(false);
 
   const getGuestId = () => {
     let guestId = localStorage.getItem('guestId');
@@ -633,6 +635,16 @@ const ProductDetail = () => {
             </div>
           )}
 
+          {product.model3D && (
+            <button
+              className="action-button"
+              onClick={() => setShowTryOn(!showTryOn)}
+            >
+              {showTryOn ? "Masquer l'essayage virtuel" : 'Essayer virtuellement'}
+            </button>
+          )}
+          {showTryOn && <VirtualTryOn model3DUrl={`http://localhost:5000${product.model3D}`} />}
+
           <button
             className="action-button"
             onClick={handleAddToCart}
@@ -641,6 +653,7 @@ const ProductDetail = () => {
             Ajouter au panier
           </button>
 
+          {/* Removed the second VirtualTryOn instance */}
           <div className="reviews-section">
             <h2 className="reviews-title">Avis des clients</h2>
             {isAuthenticated && (
