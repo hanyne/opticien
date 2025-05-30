@@ -13,6 +13,8 @@ const reviewRoutes = require('./routes/Review');
 const orderOptRoutes = require('./routes/orderopt');
 const lensStockRoutes = require('./routes/lensStock');
 const salesRoutes = require('./routes/sales');
+const notificationRoutes = require('./routes/notifications');
+
 dotenv.config();
 const app = express();
 
@@ -40,6 +42,8 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/reviews',reviewRoutes );
 app.use('/api/orderopt', orderOptRoutes);
 app.use('/api/lens-stock', lensStockRoutes);
+app.use('/api/notifications', notificationRoutes.router);
 app.use('/api/orders', [orderRoutes, salesRoutes]);
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`));

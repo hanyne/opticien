@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import Sidebar from '../components/AdminSidebar';
+import Sidebar from './AdminSidebar';
 
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
@@ -9,20 +9,31 @@ const AdminProducts = () => {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
+  const [brand, setBrand] = useState(''); // Added brand state
   const [category, setCategory] = useState('');
   const [image, setImage] = useState(null);
-  const [model3D, setModel3D] = useState(null); // New state for 3D model
+  const [model3D, setModel3D] = useState(null);
   const [editId, setEditId] = useState(null);
-  const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [error, setError] = useState('');
 
   // Fetch products and categories
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setError('Vous devez être connecté pour effectuer cette action');
+          return;
+        }
+
         const [productsRes, categoriesRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/products'),
-          axios.get('http://localhost:5000/api/categories'),
+          axios.get('http://localhost:5000/api/products', {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          axios.get('http://localhost:5000/api/categories', {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
         setProducts(productsRes.data);
         setCategories(categoriesRes.data);
@@ -52,11 +63,12 @@ const AdminProducts = () => {
     formData.append('price', price);
     formData.append('stock', stock);
     formData.append('category', category);
+    formData.append('brand', brand);
     if (image) {
       formData.append('image', image);
     }
     if (model3D) {
-      formData.append('model3D', model3D); // Append 3D model file
+      formData.append('model3D', model3D);
     }
 
     try {
@@ -66,7 +78,7 @@ const AdminProducts = () => {
           formData,
           {
             headers: {
-              'x-auth-token': token,
+              Authorization: `Bearer ${token}`,
               'Content-Type': 'multipart/form-data',
             },
           }
@@ -83,7 +95,7 @@ const AdminProducts = () => {
           formData,
           {
             headers: {
-              'x-auth-token': token,
+              Authorization: `Bearer ${token}`,
               'Content-Type': 'multipart/form-data',
             },
           }
@@ -91,25 +103,17 @@ const AdminProducts = () => {
         setProducts([...products, res.data.product]);
         setSuccess('Produit ajouté avec succès');
       }
-      setName('');
-      setDescription('');
-      setPrice('');
-      setStock('');
-      setImage(null);
-      setModel3D(null); // Reset 3D model
-      setEditId(null);
-      setError('');
-      document.getElementById('image-input').value = '';
-      document.getElementById('model3d-input').value = ''; // Reset 3D model input
+      resetForm();
       // Refresh product list
-      const productsRes = await axios.get('http://localhost:5000/api/products');
+      const productsRes = await axios.get('http://localhost:5000/api/products', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setProducts(productsRes.data);
     } catch (err) {
       console.error('Erreur lors de la soumission:', err.response || err);
       setError(
         err.response?.data?.msg || err.message || 'Erreur lors de la soumission'
       );
-      setSuccess('');
     }
   };
 
@@ -124,18 +128,18 @@ const AdminProducts = () => {
     try {
       console.log(`Suppression du produit avec ID: ${id}`);
       await axios.delete(`http://localhost:5000/api/products/${id}`, {
-        headers: { 'x-auth-token': token },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setProducts(products.filter((prod) => prod._id !== id));
       setSuccess('Produit supprimé avec succès');
-      setError('');
       // Refresh product list
-      const productsRes = await axios.get('http://localhost:5000/api/products');
+      const productsRes = await axios.get('http://localhost:5000/api/products', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setProducts(productsRes.data);
     } catch (err) {
       console.error('Erreur lors de la suppression du produit:', err.response || err);
       setError(err.response?.data?.msg || 'Erreur lors de la suppression');
-      setSuccess('');
     }
   };
 
@@ -146,12 +150,39 @@ const AdminProducts = () => {
     setDescription(product.description);
     setPrice(product.price);
     setStock(product.stock);
+    setBrand(product.brand || '');
     setCategory(product.category?._id || '');
     setImage(null);
-    setModel3D(null); // Reset 3D model for editing
+    setModel3D(null);
     document.getElementById('image-input').value = '';
     document.getElementById('model3d-input').value = '';
   };
+
+  // Reset form fields
+  const resetForm = () => {
+    setName('');
+    setDescription('');
+    setPrice('');
+    setStock('');
+    setBrand('');
+    setCategory(categories.length > 0 ? categories[0]._id : '');
+    setImage(null);
+    setModel3D(null);
+    setEditId(null);
+    document.getElementById('image-input').value = '';
+    document.getElementById('model3d-input').value = '';
+  };
+
+  // Auto-dismiss toast logic
+  useEffect(() => {
+    if (success || error) {
+      const timer = setTimeout(() => {
+        setSuccess('');
+        setError('');
+      }, 3000); // Auto-dismiss after 3 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [success, error]);
 
   return (
     <div style={styles.pageContainer}>
@@ -235,16 +266,35 @@ const AdminProducts = () => {
           background: #3b82f6;
         }
 
-        .error-message {
-          color: #ef4444;
-          text-align: center;
-          margin-bottom: 1rem;
+        .toast {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          padding: 1rem;
+          border-radius: 5px;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+          z-index: 1000;
+          animation: fadeIn 0.3s ease-in, fadeOut 0.3s ease-out 2.7s;
         }
 
-        .success-message {
-          color: #10b981;
-          text-align: center;
-          margin-bottom: 1rem;
+        .toast.success {
+          background: #10b981;
+          color: #fff;
+        }
+
+        .toast.error {
+          background: #ef4444;
+          color: #fff;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeOut {
+          from { opacity: 1; }
+          to { opacity: 0; }
         }
 
         .table-container {
@@ -321,8 +371,6 @@ const AdminProducts = () => {
 
         {/* Form for adding/editing product */}
         <div style={styles.formCard} className="form-card">
-          {error && <p className="error-message">{error}</p>}
-          {success && <p className="success-message">{success}</p>}
           <form onSubmit={handleSubmit}>
             <input
               type="text"
@@ -353,6 +401,13 @@ const AdminProducts = () => {
               onChange={(e) => setStock(e.target.value)}
               className="form-input"
               required
+            />
+            <input
+              type="text"
+              placeholder="Marque"
+              value={brand}
+              onChange={(e) => setBrand(e.target.value)}
+              className="form-input"
             />
             <select
               value={category}
@@ -396,6 +451,7 @@ const AdminProducts = () => {
                 <th className="th">Description</th>
                 <th className="th">Prix</th>
                 <th className="th">Stock</th>
+                <th className="th">Marque</th>
                 <th className="th">Catégorie</th>
                 <th className="th">Image</th>
                 <th className="th">Modèle 3D</th>
@@ -409,6 +465,7 @@ const AdminProducts = () => {
                   <td className="td">{product.description}</td>
                   <td className="td">{product.price} TND</td>
                   <td className="td">{product.stock}</td>
+                  <td className="td">{product.brand || 'Non défini'}</td>
                   <td className="td">
                     {product.category ? product.category.name : 'Catégorie non définie'}
                   </td>
@@ -455,6 +512,18 @@ const AdminProducts = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Toast for success/error messages */}
+        {success && (
+          <div className="toast success" role="alert">
+            {success}
+          </div>
+        )}
+        {error && (
+          <div className="toast error" role="alert">
+            {error}
+          </div>
+        )}
       </div>
     </div>
   );

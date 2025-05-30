@@ -7,11 +7,12 @@ import Navbar from '../components/Navbar';
 const OpticienDashboard = () => {
   const [user, setUser] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [lensStock, setLensStock] = useState([]); // State to store lens stock
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [activeSection, setActiveSection] = useState('order');
-  const [totalPrice, setTotalPrice] = useState(null); // State to store total price after submission
+  const [totalPrice, setTotalPrice] = useState(null);
   const navigate = useNavigate();
 
   // Pricing data for lenses and frames
@@ -37,7 +38,7 @@ const OpticienDashboard = () => {
   };
 
   useEffect(() => {
-    const fetchUserAndOrders = async () => {
+    const fetchUserAndData = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -54,10 +55,18 @@ const OpticienDashboard = () => {
         }
         setUser(userData);
 
+        // Fetch orders
         const ordersRes = await axios.get('http://localhost:5000/api/orderopt/my-orders', {
           headers: { Authorization: `Bearer ${token}` },
         });
         setOrders(ordersRes.data);
+
+        // Fetch lens stock
+        const lensStockRes = await axios.get('http://localhost:5000/api/lens-stock', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setLensStock(lensStockRes.data);
+
         setLoading(false);
       } catch (err) {
         setError(err.response?.data?.msg || 'Erreur lors de la récupération des données');
@@ -65,7 +74,7 @@ const OpticienDashboard = () => {
         navigate('/login?message=' + encodeURIComponent('Session invalide, veuillez vous reconnecter'));
       }
     };
-    fetchUserAndOrders();
+    fetchUserAndData();
   }, [navigate]);
 
   const handleLogout = () => {
@@ -116,6 +125,13 @@ const OpticienDashboard = () => {
       return;
     }
 
+    // Check stock availability before submitting
+    const selectedLensStock = lensStock.find((lens) => lens.name === orderForm.lensType);
+    if (!selectedLensStock || selectedLensStock.stock < 1) {
+      setOrderError('Stock insuffisant pour ce type de verre');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       const totalPrice = calculateTotalPrice();
@@ -128,15 +144,23 @@ const OpticienDashboard = () => {
           wearer: orderForm.wearer,
           lensType: orderForm.lensType,
           status: 'pending',
-          totalPrice: totalPrice, // Add total price to the order
+          totalPrice: totalPrice,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
       setOrderSuccess('Commande soumise avec succès');
-      setTotalPrice(totalPrice); // Display total price after submission
+      setTotalPrice(totalPrice);
       setOrders((prev) => [...prev, { ...res.data.order, totalPrice }]);
+
+      // Update local lens stock state
+      setLensStock((prev) =>
+        prev.map((lens) =>
+          lens.name === orderForm.lensType ? { ...lens, stock: lens.stock - 1 } : lens
+        )
+      );
+
       setOrderForm({
         frameType: '',
         additionalNotes: '',
@@ -406,6 +430,20 @@ const OpticienDashboard = () => {
         .form-group textarea {
           resize: vertical;
           min-height: 100px;
+        }
+
+        .stock-info {
+          font-size: 0.9rem;
+          margin-top: 0.5rem;
+          color: ${darkMode ? '#a3e635' : '#65a30d'}; /* Green for available */
+        }
+
+        .stock-low {
+          color: ${darkMode ? '#f59e0b' : '#d97706'}; /* Amber for low stock */
+        }
+
+        .stock-out {
+          color: #f43f5e; /* Red for out of stock */
         }
 
         .eye-section {
@@ -726,12 +764,35 @@ const OpticienDashboard = () => {
                   }
                 >
                   <option value="">Sélectionner un type de verre</option>
-                  {lensOptions.map((option, index) => (
-                    <option key={index} value={option}>
-                      {option} ({lensPrices[option]} TND)
-                    </option>
-                  ))}
+                  {lensOptions.map((option, index) => {
+                    const stock = lensStock.find((lens) => lens.name === option)?.stock || 0;
+                    return (
+                      <option key={index} value={option}>
+                        {option} ({lensPrices[option]} TND) - Stock: {stock}
+                      </option>
+                    );
+                  })}
                 </select>
+                {orderForm.lensType && (
+                  <p
+                    className={`stock-info ${
+                      (lensStock.find((lens) => lens.name === orderForm.lensType)?.stock || 0) === 0
+                        ? 'stock-out'
+                        : (lensStock.find((lens) => lens.name === orderForm.lensType)?.stock || 0) <= 5
+                        ? 'stock-low'
+                        : ''
+                    }`}
+                  >
+                    Stock disponible: {lensStock.find((lens) => lens.name === orderForm.lensType)?.stock || 0}
+                    {(lensStock.find((lens) => lens.name === orderForm.lensType)?.stock || 0) <= 5 &&
+                      (lensStock.find((lens) => lens.name === orderForm.lensType)?.stock || 0) > 0 && (
+                        <span> (Stock faible !)</span>
+                      )}
+                    {(lensStock.find((lens) => lens.name === orderForm.lensType)?.stock || 0) === 0 && (
+                      <span> (Rupture de stock)</span>
+                    )}
+                  </p>
+                )}
               </div>
 
               <div className="form-group">

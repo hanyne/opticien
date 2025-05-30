@@ -1,6 +1,6 @@
 import logo from './logo.svg';
 import './App.css';
-import { BrowserRouter as Router, Route, Routes, Link,  Navigate} from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import Home from './components/Home';
 import Contact from './components/Contact';
 import About from './components/About';
@@ -19,12 +19,23 @@ import OrderHistory from './components/OrderHistory';
 import OpticienDashboard from './components/OpticienDashboard';
 import AdminOpticianOrders from './components/AdminOpticianOrders';
 import CreateUser from './components/CreateUser';
-  
-function App() {
+import UserList from './components/UserList';
+import UserProfile from './components/UserProfile';
+import EditUser from './components/EditUser';
+import { NotificationProvider } from './components/NotificationProvider';
+import Notification from './components/Notification';
+import { useContext } from 'react';
+import { NotificationContext } from './components/NotificationProvider';
+
+// Child component to handle routing and notifications
+const MainApp = () => {
+  const { notifications, handleCloseNotification } = useContext(NotificationContext);
   const token = localStorage.getItem('token');
   const role = localStorage.getItem('role');
+
   return (
-    <Router>
+    <>
+      <Notification notifications={notifications} onClose={handleCloseNotification} />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/contact" element={<Contact />} />
@@ -34,12 +45,14 @@ function App() {
         <Route path="/signup" element={<SignUp />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/product/:id" element={<ProductDetails />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/orders" element={<OrderHistory />} />
         <Route path="/opticien/dashboard" element={<OpticienDashboard />} />
-        
+        <Route path="/admin/users" element={<UserList />} />
+        <Route path="/admin/users/create" element={<CreateUser />} />
+        <Route path="/admin/users/edit/:id" element={<EditUser />} />
         <Route path="/admin/optician-orders" element={<AdminOpticianOrders />} />
+        <Route path="/profile" element={<UserProfile />} />
         <Route
           path="/home"
           element={
@@ -65,22 +78,23 @@ function App() {
           }
         />
         <Route
-          path="/admin/users"
-          element={
-            token && role === 'admin' ? <CreateUser /> : <Navigate to="/signin" replace />
-          }
-        />
-        <Route
           path="/admin/orders"
           element={
             token && role === 'admin' ? <AdminOrders /> : <Navigate to="/signin" replace />
           }
         />
-       
-
-
       </Routes>
-    </Router>
+    </>
+  );
+};
+
+function App() {
+  return (
+    <NotificationProvider>
+      <Router>
+        <MainApp />
+      </Router>
+    </NotificationProvider>
   );
 }
 

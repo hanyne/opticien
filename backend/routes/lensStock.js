@@ -1,15 +1,30 @@
 const express = require('express');
 const router = express.Router();
 const LensStock = require('../models/LensStock');
-const auth = require('../middleware/auth'); // Keep the auth middleware
+const jwt = require('jsonwebtoken');
 
-// GET /api/lens-stock - Fetch all lens stock
-router.get('/', auth, async (req, res) => {
+// Middleware to verify token
+const authMiddleware = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ msg: 'Aucun token fourni' });
+    }
+    jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch (error) {
+    console.error('Auth error:', error);
+    res.status(401).json({ msg: 'Token invalide' });
+  }
+};
+
+// Get all lens stock (available to authenticated users)
+router.get('/', authMiddleware, async (req, res) => {
   try {
     const lensStock = await LensStock.find();
     res.json(lensStock);
-  } catch (err) {
-    console.error(err.message);
+  } catch (error) {
+    console.error('Lens stock fetch error:', error);
     res.status(500).json({ msg: 'Erreur serveur' });
   }
 });

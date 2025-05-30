@@ -7,6 +7,7 @@ import Sidebar from '../components/AdminSidebar';
 const AdminOpticianOrders = () => {
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(''); // Added success state for confirmation messages
   const [loading, setLoading] = useState(true);
   const [filterDate, setFilterDate] = useState('');
   const [filterMonth, setFilterMonth] = useState('');
@@ -30,7 +31,6 @@ const AdminOpticianOrders = () => {
           return;
         }
 
-        // Fetch orders with optional filters
         const query = {};
         if (filterDate) query.date = filterDate;
         if (filterMonth) query.month = filterMonth;
@@ -62,7 +62,22 @@ const AdminOpticianOrders = () => {
           order._id === orderId ? { ...order, status: newStatus } : order
         )
       );
-      alert(res.data.msg);
+      if (newStatus === 'delivered') {
+        // Fetch current stock to display in the confirmation message
+        const lensStockRes = await axios.get('http://localhost:5000/api/lens-stock', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const lensStock = lensStockRes.data.find((lens) => lens.name === res.data.order.lensType);
+        setSuccess(`Commande marquée comme livrée. Stock actuel pour ${res.data.order.lensType}: ${lensStock?.stock || 0}`);
+      } else if (newStatus === 'cancelled') {
+        const lensStockRes = await axios.get('http://localhost:5000/api/lens-stock', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const lensStock = lensStockRes.data.find((lens) => lens.name === res.data.order.lensType);
+        setSuccess(`Commande annulée. Stock restauré pour ${res.data.order.lensType}: ${lensStock?.stock || 0}`);
+      } else {
+        setSuccess(res.data.msg);
+      }
     } catch (err) {
       setError(err.response?.data?.msg || 'Erreur lors de la mise à jour du statut');
     }
@@ -77,11 +92,22 @@ const AdminOpticianOrders = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       setOrders((prev) => prev.filter((order) => order._id !== orderId));
-      alert(res.data.msg);
+      setSuccess(res.data.msg);
     } catch (err) {
       setError(err.response?.data?.msg || 'Erreur lors de la suppression de la commande');
     }
   };
+
+  // Auto-dismiss success/error messages after 3 seconds
+  useEffect(() => {
+    if (success || error) {
+      const timer = setTimeout(() => {
+        setSuccess('');
+        setError('');
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [success, error]);
 
   if (loading) {
     return (
@@ -103,6 +129,7 @@ const AdminOpticianOrders = () => {
           <h1 className="page-title">Gestion des Commandes des Opticiens</h1>
 
           {error && <p className="error-text">{error}</p>}
+          {success && <p className="success-text">{success}</p>}
 
           {/* Filters */}
           <div className="filters">
@@ -114,7 +141,7 @@ const AdminOpticianOrders = () => {
                 value={filterDate}
                 onChange={(e) => {
                   setFilterDate(e.target.value);
-                  setFilterMonth(''); // Clear month filter if date is selected
+                  setFilterMonth('');
                 }}
               />
             </div>
@@ -126,7 +153,7 @@ const AdminOpticianOrders = () => {
                 value={filterMonth}
                 onChange={(e) => {
                   setFilterMonth(e.target.value);
-                  setFilterDate(''); // Clear date filter if month is selected
+                  setFilterDate('');
                 }}
               />
             </div>
@@ -324,11 +351,19 @@ const AdminOpticianOrders = () => {
           background: #e11d48;
         }
 
-        .error-text {
-          color: #f43f5e;
+        .error-text,
+        .success-text {
           font-size: 1rem;
           margin-bottom: 1rem;
           text-align: center;
+        }
+
+        .error-text {
+          color: #f43f5e;
+        }
+
+        .success-text {
+          color: #48bb78;
         }
 
         @media (max-width: 768px) {

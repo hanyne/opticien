@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './AdminSidebar';
+import { motion } from 'framer-motion';
 
 const CreateUser = () => {
   const [newUser, setNewUser] = useState({ email: '', password: '', role: 'client' });
@@ -21,7 +22,6 @@ const CreateUser = () => {
 
     try {
       const token = localStorage.getItem('token');
-      console.log('Token from localStorage:', token);
       if (!token) {
         setError('Veuillez vous connecter en tant qu\'admin');
         navigate('/signin');
@@ -31,117 +31,111 @@ const CreateUser = () => {
       const response = await axios.post('http://localhost:5000/api/auth/admin/register', newUser, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log('API Response:', response.data);
       setMessage(response.data.msg);
       setNewUser({ email: '', password: '', role: 'client' });
     } catch (err) {
-      console.error('API Error:', err.response ? err.response.data : err.message);
       setError(err.response?.data?.msg || 'Erreur lors de la création de l\'utilisateur');
     }
   };
 
   return (
-    <div style={styles.pageContainer}>
+    <div className="min-h-screen bg-gray-100 flex overflow-x-hidden">
       <Sidebar />
-      <style>{`
-        .main-content {
-          margin-left: 250px;
-          padding: 2rem;
-          background: #f5f5f5;
-          min-height: 100vh;
-        }
-        .section-title {
-          font-size: 2.8rem;
-          margin-bottom: 2rem;
-          text-align: center;
-          color: #1e3a8a;
-          font-weight: 700;
-        }
-        .form-container {
-          background: #fff;
-          padding: 2rem;
-          border-radius: 10px;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-          max-width: 500px;
-          margin: 0 auto;
-        }
-        .form-group {
-          margin-bottom: 1rem;
-        }
-        .form-group label {
-          display: block;
-          font-size: 1rem;
-          color: #4b5563;
-          margin-bottom: 0.5rem;
-        }
-        .form-group input, .form-group select {
-          width: 100%;
-          padding: 0.5rem;
-          border: 1px solid #d1d5db;
-          border-radius: 5px;
-          font-size: 1rem;
-        }
-        .form-group button {
-          background: #1e3a8a;
-          color: #fff;
-          padding: 0.75rem 1.5rem;
-          border: none;
-          border-radius: 5px;
-          cursor: pointer;
-          font-size: 1rem;
-        }
-        .form-group button:hover {
-          background: #172554;
-        }
-        .message {
-          text-align: center;
-          margin-top: 1rem;
-          color: #10b981;
-        }
-        .error-text {
-          text-align: center;
-          margin-top: 1rem;
-          color: #f43f5e;
-        }
-      `}</style>
+      <div className="flex-1 ml-64 p-8">
+        <motion.h2
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-4xl font-bold text-center text-indigo-900 mb-8"
+        >
+          Créer un Nouvel Utilisateur
+        </motion.h2>
 
-      <div style={styles.mainContent} className="main-content">
-        <h2 style={styles.sectionTitle}>Créer un nouvel utilisateur</h2>
+        {error && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center text-red-500 mb-4"
+          >
+            {error}
+          </motion.p>
+        )}
+        {message && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center text-green-500 mb-4"
+          >
+            {message}
+          </motion.p>
+        )}
 
-        {error && <p className="error-text">{error}</p>}
-        {message && <p className="message">{message}</p>}
-
-        <div className="form-container">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="bg-white p-8 rounded-lg shadow-lg max-w-md mx-auto"
+        >
           <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label>Email:</label>
-              <input type="email" name="email" value={newUser.email} onChange={handleInputChange} required />
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2" htmlFor="email">
+                Email
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={newUser.email}
+                onChange={handleInputChange}
+                className="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              />
             </div>
-            <div className="form-group">
-              <label>Mot de passe:</label>
-              <input type="password" name="password" value={newUser.password} onChange={handleInputChange} required />
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2" htmlFor="password">
+                Mot de Passe
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={newUser.password}
+                onChange={handleInputChange}
+                className="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              />
             </div>
-            <div className="form-group">
-              <label>Rôle:</label>
-              <select name="role" value={newUser.role} onChange={handleInputChange} required>
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2" htmlFor="role">
+                Rôle
+              </label>
+              <select
+                name="role"
+                value={newUser.role}
+                onChange={handleInputChange}
+                className="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                required
+              >
                 <option value="client">Client</option>
                 <option value="opticien">Opticien</option>
               </select>
             </div>
-            <div className="form-group">
-              <button type="submit">Créer utilisateur</button>
-            </div>
+            <button
+              type="submit"
+              className="w-full bg-indigo-600 text-white p-3 rounded hover:bg-indigo-700 transition"
+            >
+              Créer Utilisateur
+            </button>
           </form>
-        </div>
+        </motion.div>
       </div>
+
+      <style jsx global>{`
+        @import url('https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css');
+        body {
+          font-family: 'Inter', sans-serif;
+        }
+      `}</style>
     </div>
   );
-};
-
-const styles = {
-  pageContainer: { overflowX: 'hidden', background: '#fff' },
-  mainContent: { marginLeft: '250px', padding: '2rem', background: '#f5f5f5', minHeight: '100vh' },
-  sectionTitle: { fontSize: '2.8rem', marginBottom: '2rem', textAlign: 'center', color: '#1e3a8a', fontWeight: 700 },
 };
 
 export default CreateUser;

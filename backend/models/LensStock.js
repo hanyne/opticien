@@ -11,6 +11,6 @@ const lensStockSchema = new mongoose.Schema({
     required: true,
     min: 0,
   },
-}, { timestamps: true });
+});
 
 module.exports = mongoose.model('LensStock', lensStockSchema);

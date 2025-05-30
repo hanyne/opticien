@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const LensStock = require('./models/LensStock');
 
-mongoose.connect('mongodb://localhost:27017/yourDatabaseName', {
+mongoose.connect('mongodb://localhost:27017/opticien', {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });

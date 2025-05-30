@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
 const OrderOpt = require('../models/OrderOpt');
+const LensStock = require('../models/LensStock');
 
 // Middleware to verify token
 const authMiddleware = async (req, res, next) => {
@@ -36,9 +37,9 @@ const adminMiddleware = (req, res, next) => {
   next();
 };
 
-// Create a new optician order
+// Create a new optician order and reduce lens stock
 router.post('/', authMiddleware, opticianMiddleware, async (req, res) => {
-  const { frameType, additionalNotes, corrections, wearer, lensType, status } = req.body;
+  const { frameType, additionalNotes, corrections, wearer, lensType, status, totalPrice } = req.body;
   try {
     if (!frameType) {
       return res.status(400).json({ msg: 'Le type de montage est requis' });
@@ -46,6 +47,22 @@ router.post('/', authMiddleware, opticianMiddleware, async (req, res) => {
     if (!wearer || !wearer.nom || !wearer.prenom || !wearer.telephone || !wearer.email) {
       return res.status(400).json({ msg: 'Les informations du porteur sont requises' });
     }
+    if (!lensType) {
+      return res.status(400).json({ msg: 'Le type de verre est requis' });
+    }
+
+    // Check lens stock availability
+    const lensStock = await LensStock.findOne({ name: lensType });
+    if (!lensStock) {
+      return res.status(400).json({ msg: 'Type de verre non trouvé dans le stock' });
+    }
+    if (lensStock.stock < 1) {
+      return res.status(400).json({ msg: 'Stock insuffisant pour ce type de verre' });
+    }
+
+    // Reduce stock (assuming 1 pair of lenses per order)
+    lensStock.stock -= 1;
+    await lensStock.save();
 
     const orderOpt = new OrderOpt({
       userId: req.userId,
@@ -55,10 +72,11 @@ router.post('/', authMiddleware, opticianMiddleware, async (req, res) => {
       wearer,
       lensType: lensType || '',
       status: status || 'pending',
+      totalPrice,
     });
 
     await orderOpt.save();
-    res.json({ msg: 'Commande opticien créée avec succès', order: orderOpt });
+    res.json({ msg: 'Commande opticien créée avec succès, stock mis à jour', order: orderOpt });
   } catch (error) {
     console.error('Optician order creation error:', error);
     res.status(500).json({ msg: 'Erreur serveur' });
@@ -108,7 +126,7 @@ router.get('/my-orders', authMiddleware, opticianMiddleware, async (req, res) =>
   }
 });
 
-// Update optician order status (admin only)
+// Update optician order status and handle stock adjustments (admin only)
 router.put('/:orderId/status', authMiddleware, adminMiddleware, async (req, res) => {
   const { status } = req.body;
   const { orderId } = req.params;
@@ -120,6 +138,25 @@ router.put('/:orderId/status', authMiddleware, adminMiddleware, async (req, res)
     if (!order) {
       return res.status(404).json({ msg: 'Commande opticien non trouvée' });
     }
+
+    // Handle stock adjustments based on status change
+    const lensStock = await LensStock.findOne({ name: order.lensType });
+    if (!lensStock) {
+      return res.status(400).json({ msg: 'Type de verre non trouvé dans le stock' });
+    }
+
+    // If status changes to 'cancelled' and was not previously cancelled, restore stock
+    if (status === 'cancelled' && order.status !== 'cancelled') {
+      lensStock.stock += 1;
+      await lensStock.save();
+      console.log(`Stock restored for ${order.lensType}: ${lensStock.stock}`);
+    }
+
+    // If status changes to 'delivered', log confirmation
+    if (status === 'delivered' && order.status !== 'delivered') {
+      console.log(`Order ${orderId} delivered. Stock for ${order.lensType} confirmed as updated: ${lensStock.stock}`);
+    }
+
     order.status = status;
     await order.save();
     res.json({ msg: `Commande opticien ${status} avec succès`, order });
@@ -133,10 +170,22 @@ router.put('/:orderId/status', authMiddleware, adminMiddleware, async (req, res)
 router.delete('/:orderId', authMiddleware, adminMiddleware, async (req, res) => {
   const { orderId } = req.params;
   try {
-    const order = await OrderOpt.findByIdAndDelete(orderId);
+    const order = await OrderOpt.findById(orderId);
     if (!order) {
       return res.status(404).json({ msg: 'Commande opticien non trouvée' });
     }
+
+    // If the order wasn't cancelled, restore stock upon deletion
+    if (order.status !== 'cancelled') {
+      const lensStock = await LensStock.findOne({ name: order.lensType });
+      if (lensStock) {
+        lensStock.stock += 1;
+        await lensStock.save();
+        console.log(`Stock restored for ${order.lensType} upon deletion: ${lensStock.stock}`);
+      }
+    }
+
+    await order.deleteOne();
     res.json({ msg: 'Commande opticien supprimée avec succès' });
   } catch (error) {
     console.error('Optician order deletion error:', error);
