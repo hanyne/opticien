@@ -7,15 +7,18 @@ import Sidebar from '../components/AdminSidebar';
 const AdminOpticianOrders = () => {
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(''); // Added success state for confirmation messages
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(true);
   const [filterDate, setFilterDate] = useState('');
   const [filterMonth, setFilterMonth] = useState('');
+  const [lensStock, setLensStock] = useState([]); // State to store lens stock
+  const [selectedLens, setSelectedLens] = useState('');
+  const [quantity, setQuantity] = useState('');
   const navigate = useNavigate();
 
-  // Fetch optician orders on mount
+  // Fetch optician orders and lens stock on mount
   useEffect(() => {
-    const fetchOrders = async () => {
+    const fetchData = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
@@ -31,6 +34,7 @@ const AdminOpticianOrders = () => {
           return;
         }
 
+        // Fetch orders
         const query = {};
         if (filterDate) query.date = filterDate;
         if (filterMonth) query.month = filterMonth;
@@ -39,13 +43,20 @@ const AdminOpticianOrders = () => {
           params: query,
         });
         setOrders(ordersRes.data);
+
+        // Fetch lens stock
+        const lensStockRes = await axios.get('http://localhost:5000/api/lens-stock', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setLensStock(lensStockRes.data);
+
         setLoading(false);
       } catch (err) {
-        setError(err.response?.data?.msg || 'Erreur lors de la récupération des commandes');
+        setError(err.response?.data?.msg || 'Erreur lors de la récupération des données');
         setLoading(false);
       }
     };
-    fetchOrders();
+    fetchData();
   }, [navigate, filterDate, filterMonth]);
 
   // Handle status update
@@ -63,18 +74,19 @@ const AdminOpticianOrders = () => {
         )
       );
       if (newStatus === 'delivered') {
-        // Fetch current stock to display in the confirmation message
         const lensStockRes = await axios.get('http://localhost:5000/api/lens-stock', {
           headers: { Authorization: `Bearer ${token}` },
         });
         const lensStock = lensStockRes.data.find((lens) => lens.name === res.data.order.lensType);
         setSuccess(`Commande marquée comme livrée. Stock actuel pour ${res.data.order.lensType}: ${lensStock?.stock || 0}`);
+        setLensStock(lensStockRes.data); // Update stock list
       } else if (newStatus === 'cancelled') {
         const lensStockRes = await axios.get('http://localhost:5000/api/lens-stock', {
           headers: { Authorization: `Bearer ${token}` },
         });
         const lensStock = lensStockRes.data.find((lens) => lens.name === res.data.order.lensType);
         setSuccess(`Commande annulée. Stock restauré pour ${res.data.order.lensType}: ${lensStock?.stock || 0}`);
+        setLensStock(lensStockRes.data); // Update stock list
       } else {
         setSuccess(res.data.msg);
       }
@@ -93,8 +105,36 @@ const AdminOpticianOrders = () => {
       });
       setOrders((prev) => prev.filter((order) => order._id !== orderId));
       setSuccess(res.data.msg);
+      // Refresh lens stock after deletion
+      const lensStockRes = await axios.get('http://localhost:5000/api/lens-stock', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setLensStock(lensStockRes.data);
     } catch (err) {
       setError(err.response?.data?.msg || 'Erreur lors de la suppression de la commande');
+    }
+  };
+
+  // Handle adding to lens stock
+  const handleAddLensStock = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(
+        'http://localhost:5000/api/lens-stock/add',
+        { name: selectedLens, quantity: Number(quantity) },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setSuccess(res.data.msg);
+      setSelectedLens('');
+      setQuantity('');
+      // Refresh lens stock after adding
+      const lensStockRes = await axios.get('http://localhost:5000/api/lens-stock', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setLensStock(lensStockRes.data);
+    } catch (err) {
+      setError(err.response?.data?.msg || 'Erreur lors de la mise à jour du stock');
     }
   };
 
@@ -230,6 +270,47 @@ const AdminOpticianOrders = () => {
           ) : (
             <p>Aucune commande trouvée.</p>
           )}
+
+          {/* Lens Stock Management Section */}
+          <motion.div
+            className="section"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <h2 className="section-title">Gestion du Stock de Verres</h2>
+            <form onSubmit={handleAddLensStock}>
+              <div className="form-group">
+                <label htmlFor="lensType">Type de verre</label>
+                <select
+                  id="lensType"
+                  value={selectedLens}
+                  onChange={(e) => setSelectedLens(e.target.value)}
+                >
+                  <option value="">Sélectionner un type de verre</option>
+                  {lensStock.map((lens, index) => (
+                    <option key={index} value={lens.name}>
+                      {lens.name} (Stock actuel: {lens.stock})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="quantity">Quantité à ajouter</label>
+                <input
+                  type="number"
+                  id="quantity"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  placeholder="Quantité"
+                  min="0"
+                />
+              </div>
+              <button type="submit" className="submit-button">
+                Ajouter au stock
+              </button>
+            </form>
+          </motion.div>
         </motion.div>
       </div>
 
@@ -335,6 +416,7 @@ const AdminOpticianOrders = () => {
           border-radius: 8px;
           border: 1px solid #d1d5db;
           font-size: 0.9rem;
+          width: 100%;
         }
 
         .delete-button {
@@ -364,6 +446,55 @@ const AdminOpticianOrders = () => {
 
         .success-text {
           color: #48bb78;
+        }
+
+        .section {
+          background: rgba(255, 255, 255, 0.9);
+          padding: 1.5rem;
+          border-radius: 12px;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+          margin-top: 2rem;
+        }
+
+        .section-title {
+          font-size: 1.5rem;
+          font-weight: 600;
+          color: #3182ce;
+          margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+          margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+          display: block;
+          font-size: 1rem;
+          font-weight: 500;
+          color: #2d3748;
+          margin-bottom: 0.5rem;
+        }
+
+        .form-group input {
+          width: 100%;
+          padding: 0.5rem;
+          border-radius: 8px;
+          border: 1px solid #d1d5db;
+          font-size: 1rem;
+        }
+
+        .submit-button {
+          padding: 0.5rem 1rem;
+          background: #3182ce;
+          color: #fff;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: background 0.3s ease;
+        }
+
+        .submit-button:hover {
+          background: #2b6cb0;
         }
 
         @media (max-width: 768px) {
